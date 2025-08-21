@@ -89,13 +89,13 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     needs: [lint-and-test, build-scan-and-push]
-    if: always() # This job runs even if previous jobs fail
+    if: always()
 
     steps:
       - name: Send Discord Notification
         uses: rjstone/discord-webhook-notify@v1
         with:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "CI/CD Pipeline Run ${{ job.status }}"
+          severity: "${{ job.status == 'success' && 'info' || 'error' }}"
           description: "The pipeline has finished with a status of **${{ job.status }}**. [View Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-          color: "${{ job.status == 'success' && '3066993' || '15158332' }}" # Green for success, Red for failure
+          color: "${{ job.status == 'success' && '3066993' || '15158332' }}"
