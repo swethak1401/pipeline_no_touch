@@ -93,9 +93,24 @@ jobs:
 
     steps:
       - name: Send Discord Notification
-        uses: rjstone/discord-webhook-notify@v1
-        with:
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          severity: "${{ job.status == 'success' && 'info' || 'error' }}"
-          description: "The pipeline has finished with a status of **${{ job.status }}**. [View Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-          color: "${{ job.status == 'success' && '3066993' || '15158332' }}"
+        run: |
+          # Set status message and color based on the overall job status
+          if [ ${{ job.status }} == 'success' ]; then
+            STATUS_MESSAGE="Success"
+            COLOR=3066993 # Green
+          else
+            STATUS_MESSAGE="Failure"
+            COLOR=15158332 # Red
+          fi
+          
+          # Safely construct the JSON payload using printf
+          JSON_PAYLOAD=$(printf '{
+            "embeds": [{
+              "title": "CI/CD Pipeline Run: %s",
+              "description": "The pipeline has finished. [View Workflow Run](https://github.com/%s/actions/runs/%s)",
+              "color": %d
+            }]
+          }' "$STATUS_MESSAGE" "${{ github.repository }}" "${{ github.run_id }}" "$COLOR")
+
+          # Send the notification using curl
+          curl -X POST -H "Content-Type: application/json" -d "$JSON_PAYLOAD" "${{ secrets.DISCORD_WEBHOOK_URL }}"
